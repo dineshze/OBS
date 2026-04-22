@@ -18,7 +18,7 @@ export const ITEM_ICONS = {
   furnace: "/game-assets/furnace.webp",
   tnt: "/game-assets/tnt.webp",
   boom: "/game-assets/boom.webp",
-  iron_axe: "/game-assets/iron-axe.jpg",
+  iron_axe: "/game-assets/iron-axe.webp",
   stihl_axe: "/game-assets/stihl-axe.webp",
   stihl: "/game-assets/stihle.webp",
   explosive: "/game-assets/exposive.webp",

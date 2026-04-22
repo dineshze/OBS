@@ -2,41 +2,41 @@ import { CRAFT_RECIPES, PLACEABLE_ITEMS } from "./itemData";
 
 export function addToHotbar(player, itemType, count = 1) {
   const newInventory = [...player.inventory];
-  // Try to stack in hotbar (0-4)
+  
   for (let i = 0; i < 5; i++) {
     if (newInventory[i] && newInventory[i].type === itemType) {
       newInventory[i] = { ...newInventory[i], count: newInventory[i].count + count };
       return { ...player, inventory: newInventory };
     }
   }
-  // Find empty hotbar slot
+  
   for (let i = 0; i < 5; i++) {
     if (!newInventory[i]) {
       newInventory[i] = { type: itemType, count };
       return { ...player, inventory: newInventory };
     }
   }
-  // No space in hotbar, add to inventory
+  
   return addToInventory(player, itemType, count);
 }
 
 export function addToInventory(player, itemType, count = 1) {
   const newInventory = [...player.inventory];
-  // First, try to stack in existing slots
+  
   for (let i = 0; i < newInventory.length; i++) {
     if (newInventory[i] && newInventory[i].type === itemType) {
       newInventory[i] = { ...newInventory[i], count: newInventory[i].count + count };
       return { ...player, inventory: newInventory };
     }
   }
-  // Then, find empty slot
+  
   for (let i = 0; i < newInventory.length; i++) {
     if (!newInventory[i]) {
       newInventory[i] = { type: itemType, count };
       return { ...player, inventory: newInventory };
     }
   }
-  // No space
+  
   return null;
 }
 
@@ -67,7 +67,7 @@ export function mineTile(player, map) {
     }
   }
 
-  // Mine grass for seeds
+  
   if (map[y] && map[y][x]?.type === "grass") {
     const drops = ["grass", "seed"];
     const item = drops[Math.floor(Math.random() * drops.length)];
@@ -102,12 +102,12 @@ export function placeItem(player, map, targetX, targetY) {
   if (!PLACEABLE_ITEMS.includes(slot.type)) return { player, map };
 
   const tile = map[targetY][targetX];
-  if (tile.item) return { player, map }; // already occupied
+  if (tile.item) return { player, map }; 
 
-  // Special handling for seed planting
+  
   if (slot.type === "seed") {
     if (tile.type !== "c1" || !tile.farming || tile.farming.stage !== "c1") return { player, map };
-    // Plant the seed
+    
     const newMap = map.map((row, y) =>
       y === targetY
         ? row.map((cell, x) =>
@@ -134,7 +134,7 @@ export function placeItem(player, map, targetX, targetY) {
     };
   }
 
-  // Place the item
+  
   const newMap = map.map((row, y) =>
     y === targetY
       ? row.map((cell, x) =>
@@ -165,7 +165,7 @@ export function craftItem(player, recipeId) {
   const recipe = CRAFT_RECIPES[recipeId];
   if (!recipe) return { player, success: false };
 
-  // Calculate total counts from inventory array
+  
   const totalCounts = {};
   player.inventory.forEach(slot => {
     if (slot) {
@@ -179,7 +179,7 @@ export function craftItem(player, recipeId) {
 
   if (!canCraft) return { player, success: false };
 
-  // Remove required items from inventory
+  
   const newInventory = [...player.inventory];
   Object.entries(recipe.requires).forEach(([type, requiredCount]) => {
     let remaining = requiredCount;
@@ -195,7 +195,7 @@ export function craftItem(player, recipeId) {
     }
   });
 
-  // Add result to inventory
+  
   const resultInventory = addToInventory({ ...player, inventory: newInventory }, recipe.result, 1);
   return { player: resultInventory, success: true };
 }
@@ -207,15 +207,15 @@ export function pickupItem(player, map, targetX, targetY) {
   let itemType = tile.item.type;
   let count = 1;
 
-  // Special handling for different item types
+  
   if (itemType === "tree") {
     itemType = "wood";
-    count = Math.floor(Math.random() * 3) + 1; // 1-3 wood
+    count = Math.floor(Math.random() * 3) + 1; 
   } else if (itemType === "mine") {
     itemType = "iron";
-    count = Math.floor(Math.random() * 2) + 1; // 1-2 iron
+    count = Math.floor(Math.random() * 2) + 1; 
   } else if (itemType === "supply_box") {
-    // Supply boxes are handled separately in App.jsx
+    
     return { player, map };
   }
 

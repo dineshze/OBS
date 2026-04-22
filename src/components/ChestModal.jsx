@@ -1,26 +1,15 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { ITEM_ICONS, ITEM_LABELS } from "../game/itemData";
+import ItemIcon from "./ItemIcon";
 
-const SLOT_SIZE = 48;
-const SLOTS_PER_ROW = 8;
+function Slot({ item, count, onDragStart, onDrop, onDragOver, isEmpty = false, source, onClick }) {
+  const timerRef = useRef(null);
 
-// Mobile responsive slot configuration
-const getResponsiveConfig = () => {
-  if (typeof window === 'undefined') return { slotSize: SLOT_SIZE, slotsPerRow: SLOTS_PER_ROW };
-  
-  const width = window.innerWidth;
-  if (width < 480) {
-    return { slotSize: 36, slotsPerRow: 5 }; // Extra small phones
-  } else if (width < 768) {
-    return { slotSize: 40, slotsPerRow: 6 }; // Small phones and tablets
-  } else if (width < 1024) {
-    return { slotSize: 44, slotsPerRow: 7 }; // Tablets
-  }
-  return { slotSize: SLOT_SIZE, slotsPerRow: SLOTS_PER_ROW }; // Desktop
-};
-
-function Slot({ item, count, onDragStart, onDrop, onDragOver, isEmpty = false, source, slotSize = SLOT_SIZE }) {
   const handleDragStart = (e) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
     if (item && count > 0) {
       e.dataTransfer.setData("text/plain", JSON.stringify({ type: item, count, source }));
       onDragStart?.(item, count);
@@ -31,12 +20,10 @@ function Slot({ item, count, onDragStart, onDrop, onDragOver, isEmpty = false, s
     e.preventDefault();
     try {
       const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-      // Only allow drops from different sources
       if (data.source !== source) {
         onDrop?.(data.type, data.count);
       }
     } catch {
-      // Invalid drop data
     }
   };
 
@@ -45,27 +32,53 @@ function Slot({ item, count, onDragStart, onDrop, onDragOver, isEmpty = false, s
     onDragOver?.();
   };
 
+  const handlePointerDown = (e) => {
+    if (e.button !== 0 && e.button !== undefined) return;
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      if (item && count > 0) {
+        onClick?.(item, count, true);
+        if (window.navigator?.vibrate) window.navigator.vibrate(50);
+      }
+    }, 1500);
+  };
+
+  const handlePointerUp = (e) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+      if (item && count > 0) {
+        onClick?.(item, count, e.shiftKey);
+      }
+    }
+  };
+
+  const handlePointerLeave = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
   return (
     <div
-      className={`border border-gray-300 rounded flex items-center justify-center cursor-pointer relative bg-gray-50 hover:bg-gray-100 ${
+      className={`w-11 h-11 sm:w-12 sm:h-12 border border-gray-300 rounded flex items-center justify-center cursor-pointer relative bg-gray-50 hover:bg-gray-100 shrink-0 transition-colors ${
         isEmpty ? 'border-dashed' : ''
       }`}
-      style={{
-        width: `${slotSize}px`,
-        height: `${slotSize}px`,
-        minWidth: `${slotSize}px`,
-        minHeight: `${slotSize}px`
-      }}
       draggable={!!item && count > 0}
       onDragStart={handleDragStart}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {item && count > 0 && (
         <>
-          <img src={ITEM_ICONS[item]} alt={item} style={{ width: slotSize * 0.67, height: slotSize * 0.67 }} />
+          <ItemIcon type={item} count={count} className="w-7 h-7 sm:w-8 sm:h-8" style={{ transition: 'transform 0.1s', cursor: 'pointer' }} />
           {count > 1 && (
-            <span className="absolute bottom-0 right-0 bg-black bg-opacity-75 text-white text-xs px-1 rounded">
+            <span className="absolute bottom-0 right-0 bg-black bg-opacity-75 text-white text-[10px] sm:text-xs px-1 rounded">
               {count}
             </span>
           )}
@@ -83,17 +96,6 @@ export default function ChestModal({
   onTransferToChest,
   onTransferToPlayer
 }) {
-  const [config, setConfig] = React.useState(getResponsiveConfig());
-
-  React.useEffect(() => {
-    const handleResize = () => {
-      setConfig(getResponsiveConfig());
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   if (!isOpen) return null;
 
   const renderInventoryGrid = (items, title, onItemDrop, source) => {
@@ -101,9 +103,9 @@ export default function ChestModal({
     const totalSlots = Math.max(itemEntries.length, 16); // Minimum 16 slots
 
     return (
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold mb-2 text-center text-sm sm:text-base">{title}</h3>
-        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${config.slotsPerRow}, 1fr)` }}>
+      <div className="flex-1 min-w-0 bg-gray-100 p-3 sm:p-4 rounded-lg">
+        <h3 className="font-bold mb-3 text-center text-sm sm:text-base text-gray-700">{title}</h3>
+        <div className="flex flex-wrap gap-1.5 justify-center">
           {Array.from({ length: totalSlots }, (_, index) => {
             const itemEntry = itemEntries[index];
             if (itemEntry) {
@@ -114,8 +116,8 @@ export default function ChestModal({
                   item={type}
                   count={count}
                   source={source}
-                  slotSize={config.slotSize}
                   onDrop={(droppedType, droppedCount) => onItemDrop(droppedType, droppedCount)}
+                  onClick={(clickedType, clickedCount, isShift) => onItemDrop(clickedType, isShift ? clickedCount : 1)}
                 />
               );
             } else {
@@ -124,7 +126,6 @@ export default function ChestModal({
                   key={`${title}-empty-${index}`}
                   isEmpty={true}
                   source={source}
-                  slotSize={config.slotSize}
                   onDrop={(droppedType, droppedCount) => onItemDrop(droppedType, droppedCount)}
                 />
               );
@@ -136,15 +137,15 @@ export default function ChestModal({
   };
 
   return (
-    <div className="fixed inset-0 backdrop-blur-lg bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-sm sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center p-2 sm:p-4 border-b">
-          <h2 className="text-lg sm:text-xl font-bold">Storage Chest</h2>
-          <button onClick={onClose} className="text-xl sm:text-2xl hover:text-gray-600">×</button>
+    <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex justify-between items-center p-3 sm:p-4 border-b bg-gray-50 shrink-0">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800">Storage Chest</h2>
+          <button onClick={onClose} className="text-2xl hover:text-red-500 transition-colors leading-none">&times;</button>
         </div>
 
-        <div className="p-2 sm:p-4 overflow-y-auto flex-1">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+        <div className="p-3 sm:p-5 overflow-y-auto flex-1">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
             {renderInventoryGrid(chestStorage, "Chest", (type, count) => {
               onTransferToChest(type, count);
             }, 'chest')}
