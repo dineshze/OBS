@@ -25,21 +25,21 @@ function inventoryArrayToObject(inventoryArray) {
 
 function addToInventory(currentInventory, itemType, count = 1) {
   const newInventory = [...currentInventory];
-  // First, try to stack in existing slots
+  
   for (let i = 0; i < newInventory.length; i++) {
     if (newInventory[i] && newInventory[i].type === itemType) {
       newInventory[i] = { ...newInventory[i], count: newInventory[i].count + count };
       return newInventory;
     }
   }
-  // Then, find empty slot
+  
   for (let i = 0; i < newInventory.length; i++) {
     if (!newInventory[i]) {
       newInventory[i] = { type: itemType, count };
       return newInventory;
     }
   }
-  // No space
+  
   return currentInventory;
 }
 
@@ -51,7 +51,7 @@ export default function App() {
   const [activeChest, setActiveChest] = useState(null);
   const [furnaceOpen, setFurnaceOpen] = useState(false);
   const [activeFurnace, setActiveFurnace] = useState(null);
-  const [mining, setMining] = useState(null); // { x, y, progress, maxProgress }
+  const [mining, setMining] = useState(null); 
 
   const [player, setPlayer] = useState({
     health: MAX_HEALTH,
@@ -74,10 +74,10 @@ export default function App() {
     const tile = map[y]?.[x];
     if (!tile) return;
 
-    // Check if player has hoi to till soil
+    
     const tool = player.inventory[player.selectedSlot]?.type;
     if (tool === "hoi" && tile.type === "grass" && !tile.item) {
-      // Till soil with hoi
+      
       const newMap = map.map((row, rowY) =>
         rowY === y
           ? row.map((cell, cellX) =>
@@ -100,21 +100,21 @@ export default function App() {
         setFurnaceOpen(true);
         return;
       }
-      // Mining logic
+      
       const type = tile.item.type;
       if (!["tree", "mine", "grass"].includes(type)) return;
 
-      if (mining) return; // Already mining
+      if (mining) return; 
 
       const isStoneAxe = tool === "stone_axe";
       const isIronAxe = tool === "iron_axe";
 
-      let duration = 5000; // 5 seconds
-      if (isStoneAxe || isIronAxe) duration = 3000; // 3 seconds with tool
+      let duration = 5000; 
+      if (isStoneAxe || isIronAxe) duration = 3000; 
 
       setMining({ x, y, progress: 0, maxProgress: duration });
     } else {
-      // Harvesting logic for ready crops
+      
       if (tile.type === "c5" && tile.farming) {
         const harvestResult = harvestCrop(tile);
         if (harvestResult.reward) {
@@ -135,7 +135,7 @@ export default function App() {
         return;
       }
 
-      // Placing logic
+      
       const slot = player.inventory[player.selectedSlot];
       if (slot && slot.count > 0 && PLACEABLE_ITEMS.includes(slot.type)) {
         const result = placeItem(player, map, x, y);
@@ -149,7 +149,7 @@ export default function App() {
     const slot = player.inventory[hotbarIndex];
     if (!slot) return;
 
-    // Find first empty inventory slot (5-24)
+    
     for (let i = 5; i < 25; i++) {
       if (!player.inventory[i]) {
         const newInventory = [...player.inventory];
@@ -162,7 +162,7 @@ export default function App() {
         return;
       }
     }
-    // No empty slot, do nothing
+    
   }
 
   function handleMoveInventoryToHotbar(itemType, hotbarIndex) {
@@ -240,7 +240,7 @@ export default function App() {
     setFurnaceOpen(false);
   }
 
-  // ✅ WASD keyboard support
+  
   useEffect(() => {
     if (!mining) return;
 
@@ -249,7 +249,7 @@ export default function App() {
         if (!prev) return null;
         const newProgress = prev.progress + 100;
         if (newProgress >= prev.maxProgress) {
-          // Mining complete
+          
           const tile = map[prev.y]?.[prev.x];
           if (tile?.item) {
             const type = tile.item.type;
@@ -284,13 +284,13 @@ export default function App() {
               }
             }
 
-            // Add rewards to inventory
+            
             setPlayer(prevPlayer => ({
               ...prevPlayer,
               inventory: Object.keys(rewards).reduce((inv, item) => addToInventory(inv, item, rewards[item]), prevPlayer.inventory)
             }));
 
-            // Remove the mined item
+            
             setMap(prevMap =>
               prevMap.map((row, rowY) =>
                 rowY === prev.y
@@ -330,7 +330,7 @@ export default function App() {
         }
         return prevMap;
       });
-    }, 5000); // Check every 5 seconds
+    }, 5000); 
 
     return () => clearInterval(interval);
   }, []);
@@ -338,25 +338,43 @@ export default function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       setMap(prevMap => growCrops(prevMap));
-    }, 1000); // Update crops every second
+    }, 1000); 
 
     return () => clearInterval(interval);
   }, []);
+
+
 
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveFurnace(prev => {
         if (!prev || !prev.smelting) return prev;
+        
+        // If items were removed while smelting, cancel it (user logic: if ore < smelting queued or fuel removed etc).
+        // Actually, if we just let the current one finish, the NEXT one will check fuel/ore. 
+        // If they take out items, they are taking from storage, not the current smelting item.
+        
         const newProgress = prev.smelting.progress + 100;
         if (newProgress >= prev.smelting.max) {
-          // Smelting complete
+          
           const recipe = SMELTING_RECIPES[prev.smelting.item];
           const newStorage = { ...prev.storage };
           newStorage[recipe.result] = (newStorage[recipe.result] || 0) + 1;
+          
+          let nextSmelting = null;
+          if (prev.smelting.queued > 1) {
+            // Check if there's enough fuel and ore for the NEXT queued item
+            if ((newStorage.wood || 0) >= 1 && (newStorage[prev.smelting.item] || 0) >= 1 && (newStorage[recipe.result] || 0) < 64) {
+              newStorage.wood -= 1;
+              newStorage[prev.smelting.item] -= 1;
+              nextSmelting = { item: prev.smelting.item, progress: 0, max: recipe.time, queued: prev.smelting.queued - 1 };
+            }
+          }
+          
           return {
             ...prev,
             storage: newStorage,
-            smelting: null
+            smelting: nextSmelting
           };
         }
         return {
@@ -369,8 +387,28 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key >= '1' && e.key <= '5') {
+        setPlayer(p => ({ ...p, selectedSlot: parseInt(e.key) - 1 }));
+      }
+      if (e.key.toLowerCase() === 'e') {
+        if (craftingOpen || chestOpen || furnaceOpen || inventoryOpen) {
+          setCraftingOpen(false);
+          if (chestOpen) handleCloseChest();
+          if (furnaceOpen) handleCloseFurnace();
+          setInventoryOpen(false);
+        } else {
+          setInventoryOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [craftingOpen, chestOpen, furnaceOpen, inventoryOpen, activeChest, activeFurnace]);
+
   return (
-    <div className="h-screen w-screen bg-emerald-500">
+    <div className="h-screen w-screen bg-emerald-500 select-none">
       <div className="p-3 max-w-md mx-auto">
         <StatusBar health={player.health} hunger={player.hunger} />
         <Grid map={map} onCellClick={handleCellClick} mining={mining} />
@@ -476,6 +514,9 @@ export default function App() {
           onTransferToPlayer={(itemType, count) => {
             if (!itemType || !activeFurnace || (activeFurnace.storage[itemType] || 0) < count) return;
 
+            // Optional cancellation of queue if they remove the ore/fuel currently in queue:
+            // The App interval handles this safely by checking storage before starting the next queue item.
+
             setPlayer(prev => ({
               ...prev,
               inventory: addToInventory(prev.inventory, itemType, count)
@@ -485,29 +526,25 @@ export default function App() {
               storage: { ...prev.storage, [itemType]: prev.storage[itemType] - count }
             }));
           }}
-          onStartSmelting={(ore) => {
+          onStartSmelting={(ore, count = 1) => {
             if (!activeFurnace || !SMELTING_RECIPES[ore]) return;
             const recipe = SMELTING_RECIPES[ore];
             
-            // Check fuel and ore
             if ((activeFurnace.storage.wood || 0) < 1 || (activeFurnace.storage[ore] || 0) < 1) return;
 
-            // Check if result slot can accept the item
             const resultItem = recipe.result;
             const resultCount = activeFurnace.storage[resultItem] || 0;
             
-            // Result slot is full (max 64)
             if (resultCount >= 64) return;
 
-            // Consume fuel and ore
             const newStorage = { ...activeFurnace.storage };
-            newStorage.wood = (newStorage.wood || 0) - 1;
-            newStorage[ore] = (newStorage[ore] || 0) - 1;
+            newStorage.wood -= 1;
+            newStorage[ore] -= 1;
 
             setActiveFurnace(prev => ({
               ...prev,
               storage: newStorage,
-              smelting: { item: ore, progress: 0, max: recipe.time }
+              smelting: { item: ore, progress: 0, max: recipe.time, queued: count }
             }));
           }}
         />

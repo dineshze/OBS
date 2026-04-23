@@ -1,4 +1,5 @@
 import { ITEM_ICONS } from "../game/itemData";
+import ItemIcon from "./ItemIcon";
 
 export default function Inventory({ inventory, selectedSlot, setSelectedSlot, onUpdateInventory, isOpen, onClose }) {
   if (!isOpen) return null;
@@ -39,7 +40,7 @@ export default function Inventory({ inventory, selectedSlot, setSelectedSlot, on
                 className={`w-14 h-14 border rounded-lg flex items-center justify-center cursor-pointer relative
                   ${index < 5 ? (selectedSlot === index ? "bg-yellow-300 border-yellow-500" : "bg-gray-100 border-gray-300") : "bg-gray-50 border-gray-300"}`}
               >
-                {slot ? <img src={ITEM_ICONS[slot.type]} alt={slot.type} className="w-8 h-8" /> : null}
+                {slot ? <ItemIcon type={slot.type} count={slot.count} className="w-8 h-8" /> : null}
                 {slot && slot.count > 1 && (
                   <span className="absolute bottom-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
                     {slot.count}
