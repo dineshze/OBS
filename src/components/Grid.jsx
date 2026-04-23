@@ -4,7 +4,7 @@ export default function Grid({ map, onCellClick, mining }) {
     const getFarmingImage = (cell) => {
         if (!cell.farming) return null;
         const stage = cell.farming.stage;
-        return `/assets/${stage}.png`;
+        return `/game-assets/${stage}.webp`;
     };
 
     const getFarmingLabel = (cell) => {
@@ -20,7 +20,7 @@ export default function Grid({ map, onCellClick, mining }) {
     };
 
     return (
-        <div className="w-full max-w-[90vmin] mx-auto aspect-square grid grid-cols-8 bg-[url('/bg1.png')] bg-cover bg-center h-full">
+        <div className="w-full max-w-[90vmin] mx-auto aspect-square grid grid-cols-8 bg-[url('/bg1.webp')] bg-cover bg-center h-full">
             {map.map((row, y) =>
                 row.map((cell, x) => {
                     const isMining = mining && mining.x === x && mining.y === y;

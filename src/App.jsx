@@ -25,21 +25,21 @@ function inventoryArrayToObject(inventoryArray) {
 
 function addToInventory(currentInventory, itemType, count = 1) {
   const newInventory = [...currentInventory];
-  
+
   for (let i = 0; i < newInventory.length; i++) {
     if (newInventory[i] && newInventory[i].type === itemType) {
       newInventory[i] = { ...newInventory[i], count: newInventory[i].count + count };
       return newInventory;
     }
   }
-  
+
   for (let i = 0; i < newInventory.length; i++) {
     if (!newInventory[i]) {
       newInventory[i] = { type: itemType, count };
       return newInventory;
     }
   }
-  
+
   return currentInventory;
 }
 
@@ -51,14 +51,13 @@ export default function App() {
   const [activeChest, setActiveChest] = useState(null);
   const [furnaceOpen, setFurnaceOpen] = useState(false);
   const [activeFurnace, setActiveFurnace] = useState(null);
-  const [mining, setMining] = useState(null); 
+  const [mining, setMining] = useState(null);
 
   const [player, setPlayer] = useState({
     health: MAX_HEALTH,
     hunger: MAX_HUNGER,
     inventory: [
-      { type: 'chest', count: 1 },
-      ...Array(24).fill(null)
+      ...Array(25).fill(null)
     ],
     selectedSlot: 0
   });
@@ -74,15 +73,15 @@ export default function App() {
     const tile = map[y]?.[x];
     if (!tile) return;
 
-    
+
     const tool = player.inventory[player.selectedSlot]?.type;
     if (tool === "hoi" && tile.type === "grass" && !tile.item) {
-      
+
       const newMap = map.map((row, rowY) =>
         rowY === y
           ? row.map((cell, cellX) =>
-              cellX === x ? tillSoil(cell) : cell
-            )
+            cellX === x ? tillSoil(cell) : cell
+          )
           : row
       );
       setMap(newMap);
@@ -100,21 +99,21 @@ export default function App() {
         setFurnaceOpen(true);
         return;
       }
-      
+
       const type = tile.item.type;
       if (!["tree", "mine", "grass"].includes(type)) return;
 
-      if (mining) return; 
+      if (mining) return;
 
       const isStoneAxe = tool === "stone_axe";
       const isIronAxe = tool === "iron_axe";
 
-      let duration = 5000; 
-      if (isStoneAxe || isIronAxe) duration = 3000; 
+      let duration = 5000;
+      if (isStoneAxe || isIronAxe) duration = 3000;
 
       setMining({ x, y, progress: 0, maxProgress: duration });
     } else {
-      
+
       if (tile.type === "c5" && tile.farming) {
         const harvestResult = harvestCrop(tile);
         if (harvestResult.reward) {
@@ -122,8 +121,8 @@ export default function App() {
             prevMap.map((row, rowY) =>
               rowY === y
                 ? row.map((cell, cellX) =>
-                    cellX === x ? harvestResult.tile : cell
-                  )
+                  cellX === x ? harvestResult.tile : cell
+                )
                 : row
             )
           );
@@ -135,7 +134,7 @@ export default function App() {
         return;
       }
 
-      
+
       const slot = player.inventory[player.selectedSlot];
       if (slot && slot.count > 0 && PLACEABLE_ITEMS.includes(slot.type)) {
         const result = placeItem(player, map, x, y);
@@ -149,7 +148,7 @@ export default function App() {
     const slot = player.inventory[hotbarIndex];
     if (!slot) return;
 
-    
+
     for (let i = 5; i < 25; i++) {
       if (!player.inventory[i]) {
         const newInventory = [...player.inventory];
@@ -162,7 +161,7 @@ export default function App() {
         return;
       }
     }
-    
+
   }
 
   function handleMoveInventoryToHotbar(itemType, hotbarIndex) {
@@ -240,7 +239,7 @@ export default function App() {
     setFurnaceOpen(false);
   }
 
-  
+
   useEffect(() => {
     if (!mining) return;
 
@@ -249,48 +248,59 @@ export default function App() {
         if (!prev) return null;
         const newProgress = prev.progress + 100;
         if (newProgress >= prev.maxProgress) {
-          
+
           const tile = map[prev.y]?.[prev.x];
           if (tile?.item) {
             const type = tile.item.type;
             const tool = player.inventory[player.selectedSlot]?.type;
             const isStoneAxe = tool === "stone_axe";
             const isIronAxe = tool === "iron_axe";
+            const isStihlAxe = tool === "stihl_axe";
+            const isDiamondAxe = tool === "diamond_axe";
 
             let rewards = {};
             if (type === "tree") {
-              if (isIronAxe) {
-                rewards = { wood: 4, apple: 2 };
-              } else if (isStoneAxe) {
-                rewards = { wood: 2, apple: 1 };
+              if (isStoneAxe) {
+                rewards = { wood: 2 };
+              } else if (isIronAxe) {
+                rewards = { wood: 4, apple: 1 };
+              } else if (isStihlAxe) {
+                rewards = { wood: 5, apple: 2 };
+              } else if (isDiamondAxe) {
+                rewards = { wood: 8, apple: 2 };
               } else {
                 rewards = { wood: 1 };
               }
             } else if (type === "mine") {
-              if (isIronAxe) {
-                rewards = { stone: 4, iron_ore: 2, stihl_ore: 1 };
-              } else if (isStoneAxe) {
+              if (isStoneAxe) {
                 rewards = { stone: 2, iron_ore: 1 };
+              } else if (isIronAxe) {
+                rewards = { stone: 4, iron_ore: 2, stihl_ore: 1 };
+              } else if (isStihlAxe) {
+                rewards = { stone: 5, iron_ore: 3, stihl_ore: 2, sulfur_ore: 1, diamond: 1 };
+              } else if (isDiamondAxe) {
+                rewards = { stone: 8, iron_ore: 4, stihl_ore: 3, sulfur_ore: 2, diamond: 2 };
               } else {
                 rewards = { stone: 1 };
               }
+
             } else if (type === "grass") {
-              if (isIronAxe) {
-                rewards = { seed: 4 };
-              } else if (isStoneAxe) {
+              if (isStoneAxe) {
                 rewards = { seed: 2 };
+              } else if (isIronAxe) {
+                rewards = { seed: 4 };
+              } else if (isDiamondAxe) {
+                rewards = { seed: 5 };
               } else {
                 rewards = { seed: 1 };
               }
             }
 
-            
             setPlayer(prevPlayer => ({
               ...prevPlayer,
               inventory: Object.keys(rewards).reduce((inv, item) => addToInventory(inv, item, rewards[item]), prevPlayer.inventory)
             }));
 
-            
             setMap(prevMap =>
               prevMap.map((row, rowY) =>
                 rowY === prev.y
@@ -330,7 +340,7 @@ export default function App() {
         }
         return prevMap;
       });
-    }, 5000); 
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -338,7 +348,7 @@ export default function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       setMap(prevMap => growCrops(prevMap));
-    }, 1000); 
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -349,18 +359,18 @@ export default function App() {
     const interval = setInterval(() => {
       setActiveFurnace(prev => {
         if (!prev || !prev.smelting) return prev;
-        
+
         // If items were removed while smelting, cancel it (user logic: if ore < smelting queued or fuel removed etc).
         // Actually, if we just let the current one finish, the NEXT one will check fuel/ore. 
         // If they take out items, they are taking from storage, not the current smelting item.
-        
+
         const newProgress = prev.smelting.progress + 100;
         if (newProgress >= prev.smelting.max) {
-          
+
           const recipe = SMELTING_RECIPES[prev.smelting.item];
           const newStorage = { ...prev.storage };
           newStorage[recipe.result] = (newStorage[recipe.result] || 0) + 1;
-          
+
           let nextSmelting = null;
           if (prev.smelting.queued > 1) {
             // Check if there's enough fuel and ore for the NEXT queued item
@@ -370,7 +380,7 @@ export default function App() {
               nextSmelting = { item: prev.smelting.item, progress: 0, max: recipe.time, queued: prev.smelting.queued - 1 };
             }
           }
-          
+
           return {
             ...prev,
             storage: newStorage,
@@ -529,12 +539,12 @@ export default function App() {
           onStartSmelting={(ore, count = 1) => {
             if (!activeFurnace || !SMELTING_RECIPES[ore]) return;
             const recipe = SMELTING_RECIPES[ore];
-            
+
             if ((activeFurnace.storage.wood || 0) < 1 || (activeFurnace.storage[ore] || 0) < 1) return;
 
             const resultItem = recipe.result;
             const resultCount = activeFurnace.storage[resultItem] || 0;
-            
+
             if (resultCount >= 64) return;
 
             const newStorage = { ...activeFurnace.storage };

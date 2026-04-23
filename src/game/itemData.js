@@ -24,7 +24,10 @@ export const ITEM_ICONS = {
   explosive: "/game-assets/exposive.webp",
   iron_ore: "/game-assets/iron-ore.webp",
   stihl_ore: "/game-assets/stihle-ore.webp",
-  sulfur_ore: "/game-assets/sulfur-ore.webp"
+  sulfur_ore: "/game-assets/sulfur-ore.webp",
+  diamond:"game-assets/diamond.webp",
+  bread:"game-assets/bread.webp",
+  diamond_axe:"game-assets/diamond-axe.webp"
 };
 
 export const ITEM_LABELS = {
@@ -51,6 +54,9 @@ export const ITEM_LABELS = {
   explosive: "Explosive",
   iron_ore: "Iron Ore",
   stihl_ore: "Stihl Ore",
+  diamond: "Diamond",
+  diamond_axe:"Diamond Axe:",
+  bread:"Bread",
   sulfur_ore: "Sulfur Ore",
   hoi: "Hoi"
 };
@@ -68,6 +74,9 @@ export const DEFAULT_INVENTORY = {
   wheat: 0,
   iron: 0,
   sulfur: 0,
+  diamond:0,
+  bread:0,
+  diamond_axe:0,
   gun_power: 0,
   stone_axe: 0,
   furnace: 0,
@@ -85,6 +94,11 @@ export const DEFAULT_INVENTORY = {
 };
 
 export const CRAFT_RECIPES = {
+  diamond_axe: {
+    result: "diamond_axe",
+    requires: { diamond: 3, stick: 2 },
+    label: "Diamond Axe"
+  },
   stone_axe: {
     result: "stone_axe",
     requires: { stone: 3, stick: 2 },
@@ -99,6 +113,10 @@ export const CRAFT_RECIPES = {
     result: "furnace",
     requires: { stone: 9 },
     label: "Furnace"
+  },bread: {
+    result: "bread",
+    requires: { wheat: 2 },
+    label: "Bread"
   },
   chest: {
     result: "chest",

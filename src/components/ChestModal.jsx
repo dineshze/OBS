@@ -100,7 +100,7 @@ export default function ChestModal({
 
   const renderInventoryGrid = (items, title, onItemDrop, source) => {
     const itemEntries = Object.entries(items).filter(([, count]) => count > 0);
-    const totalSlots = Math.max(itemEntries.length, 16); // Minimum 16 slots
+    const totalSlots = Math.max(itemEntries.length, 25); // Minimum 16 slots
 
     return (
       <div className="flex-1 min-w-0 bg-gray-100 p-3 sm:p-4 rounded-lg">
